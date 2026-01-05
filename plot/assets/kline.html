@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" style="background: #FFFFFF;height: 100%">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta
+    name="description"
+    content="KLineChart example"/>
+  <title>KLineChart + WebSocket</title>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/klinecharts/dist/klinecharts.js"></script>
+  <!-- <script type="text/javascript" src="./kline.js"></script> -->
+</head>
+<body style="margin: 0;height: 100%">
+<div id="chart" style="height: 100%"></div>
+<script>
+    window.onload = function () {
+        // 初始化图表
+        var chart = klinecharts.init('chart')
+        // 创建一个主图技术指标
+        chart.createIndicator('MA', false, { id: 'candle_pane' })
+        // 创建一个副图技术指标VOL
+        chart.createIndicator('VOL')
+        // 创建一个副图技术指标MACD
+        chart.createIndicator('MACD')
+
+        function drawIndicator(cfg) {
+          var calcParams =[]
+          var figures  =[]
+          cfg.metrics.forEach(element => {
+            var valset = {}
+            for (let i = 0; i < element.value.length; i++) {
+              valset[new Date(element.time[i]).getTime()] = element.value[i]
+            }
+            figures.push({ key: element.name, title: element.name+":", type:element.style,values:valset })
+          });
+
+          const indicatorCfg = {
+              name: cfg.name,
+              shortName: cfg.name,
+              calcParams: calcParams,
+              figures: figures,
+              calc: (dataList, indicator) => {
+                const { calcParams: params, figures } = indicator
+                const closeSums = []
+                return dataList.map((kLineData, i) => {
+                  const ma = {}
+                  figures.forEach((figure, index) => {
+                    ma[figure.key] = figure.values[kLineData.timestamp]
+                  })
+                  // const close = kLineData.close
+                  // params.forEach((p, index) => {
+                  //   closeSums[index] = (closeSums[index] ?? 0) + close
+                  //   if (i >= p - 1) {
+                  //     ma[figures[index].key] = closeSums[index] / p
+                  //     closeSums[index] -= dataList[i - (p - 1)].close
+                  //   }
+                  // })
+                  return ma
+                })
+              }
+          };
+          
+          klinecharts.registerIndicator(indicatorCfg);
+          // 创建副图指标
+          chart.createIndicator(cfg.name, false, { id: cfg.name });
+        }
+        // WebSocket 连接
+        var ws = new WebSocket('ws://localhost:8080/ws?pair=BTCUSDT');
+
+        ws.onopen = function() {
+            console.log('Connected to WebSocket');
+        };
+
+        ws.onmessage = function(event) {
+            try {
+                var message = JSON.parse(event.data);
+                // 处理 initialData
+                if (message.type === 'initialData' && message.payload) {
+                    if (message.payload.candles) {
+                        var chartDataList = message.payload.candles.map(function (item) {
+                            return {
+                                timestamp: new Date(item.time).getTime(),
+                                open: item.open,
+                                high: item.high,
+                                low: item.low,
+                                close: item.close,
+                                volume: item.volume
+                            }
+                        });
+                        chart.applyNewData(chartDataList);
+                    }
+                    
+                    // if (message.payload.asset_values) {
+                    //     drawIndicator({name:'Cash_INDICATOR',shortName:'现金'}, message.payload.asset_values);
+                    //     // 创建副图指标
+                    //    // chart.createIndicator('Cash_INDICATOR', false, { id: 'new_pane' });
+                    // }
+                    if (message.payload.indicators) {
+                      for (const indicator of message.payload.indicators) {
+                        drawIndicator(indicator);
+                      }
+                    }
+                }
+            } catch (e) {
+                console.error('Error parsing message:', e);
+            }
+        };
+
+        ws.onerror = function(err) {
+            console.error('WebSocket error:', err);
+        };
+        
+        ws.onclose = function() {
+            console.log('WebSocket connection closed');
+        };
+    }
+</script>
+</body>
+</html>
