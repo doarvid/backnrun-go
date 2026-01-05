@@ -40,22 +40,12 @@
               calcParams: calcParams,
               figures: figures,
               calc: (dataList, indicator) => {
-                const { calcParams: params, figures } = indicator
-                const closeSums = []
                 return dataList.map((kLineData, i) => {
-                  const ma = {}
+                  const figureData = {}
                   figures.forEach((figure, index) => {
-                    ma[figure.key] = figure.values[kLineData.timestamp]
+                    figureData[figure.key] = figure.values[kLineData.timestamp]
                   })
-                  // const close = kLineData.close
-                  // params.forEach((p, index) => {
-                  //   closeSums[index] = (closeSums[index] ?? 0) + close
-                  //   if (i >= p - 1) {
-                  //     ma[figures[index].key] = closeSums[index] / p
-                  //     closeSums[index] -= dataList[i - (p - 1)].close
-                  //   }
-                  // })
-                  return ma
+                  return figureData
                 })
               }
           };
