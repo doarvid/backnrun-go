@@ -22,7 +22,7 @@
         chart.createIndicator('VOL')
         // 创建一个副图技术指标MACD
         chart.createIndicator('MACD')
-
+      
         function drawIndicator(cfg) {
           var calcParams =[]
           var figures  =[]
@@ -68,8 +68,19 @@
                 if (message.type === 'initialData' && message.payload) {
                     if (message.payload.candles) {
                         var chartDataList = message.payload.candles.map(function (item) {
+                          var ts = new Date(item.time).getTime()
+                            for (const order of item.orders) {
+                              chart.createOverlay({
+                                  name: 'simpleAnnotation',
+                                 // styles: { color: '#a0a7e6' },
+                                  extendData:function(data){
+                                    return order.side[0]
+                                  },
+                                  points: [{ timestamp: ts, value: order.price }]
+                                })
+                            }
                             return {
-                                timestamp: new Date(item.time).getTime(),
+                                timestamp: ts,
                                 open: item.open,
                                 high: item.high,
                                 low: item.low,
