@@ -94,6 +94,16 @@ func GetPair(pair string) (AssetQuote, bool) {
 	return data, exists
 }
 
+// UpdatePair updates the AssetQuote information for a pair
+func UpdatePair(pair string, assetQuote AssetQuote) (AssetQuote, bool) {
+	defaultPairService.mu.Lock()
+	defer defaultPairService.mu.Unlock()
+
+	data, exists := defaultPairService.pairMap[pair]
+	defaultPairService.pairMap[pair] = assetQuote
+	return data, exists
+}
+
 // ---------------------
 // Pair Update Methods
 // ---------------------

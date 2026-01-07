@@ -103,7 +103,7 @@ func NewChart(log core.Logger, options ...Option) (*Chart, error) {
 
 	// Parse chart HTML template
 	var err error
-	chart.indexHTML, err = template.ParseFS(staticFiles, "assets/index.html")
+	chart.indexHTML, err = template.ParseFS(staticFiles, "assets/kline.html")
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse chart template: %w", err)
 	}

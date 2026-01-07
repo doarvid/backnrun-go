@@ -54,8 +54,11 @@
           // 创建副图指标
           chart.createIndicator(cfg.name, false, { id: cfg.name });
         }
+        {{range $val := .pairs}}
+           var ws = new WebSocket('ws://localhost:8080/ws?pair={{ $val }}'); 
+        {{end}}
         // WebSocket 连接
-        var ws = new WebSocket('ws://localhost:8080/ws?pair=BTCUSDT');
+        
 
         ws.onopen = function() {
             console.log('Connected to WebSocket');
