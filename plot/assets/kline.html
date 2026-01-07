@@ -11,6 +11,13 @@
   <!-- <script type="text/javascript" src="./kline.js"></script> -->
 </head>
 <body style="margin: 0;height: 100%">
+<div class="d-flex flex-wrap" id="trading-pairs">
+          {{range $val := .pairs}}
+          <a class="btn btn-outline-primary pair-btn {{if eq $.pair $val}}active{{end}}" href="/?pair={{ $val }}">
+            {{ $val }}
+          </a>
+          {{end}}
+        </div>
 <div id="chart" style="height: 100%"></div>
 <script>
     window.onload = function () {
@@ -54,12 +61,10 @@
           // 创建副图指标
           chart.createIndicator(cfg.name, false, { id: cfg.name });
         }
-        {{range $val := .pairs}}
-           var ws = new WebSocket('ws://localhost:8080/ws?pair={{ $val }}'); 
-        {{end}}
         // WebSocket 连接
-        
-
+        const urlParams = new URLSearchParams(window.location.search);
+        const pair = urlParams.get('pair');
+        var ws = new WebSocket('ws://localhost:8080/ws?pair='+pair); 
         ws.onopen = function() {
             console.log('Connected to WebSocket');
         };
