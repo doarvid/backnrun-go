@@ -128,11 +128,11 @@ func saveResults(filename string, results []*core.OptimizerResult, log core.Logg
 
 // --- Data Feed ---
 
-func loadDataFeed(timeframe, filename, pair string) (*exchange.CSVFeed, error) {
+func loadDataFeed(timeframe, filename, pair string) (*exchange.Feed, error) {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return nil, fmt.Errorf("data file %s not found", filename)
 	}
-	return exchange.NewCSVFeed(timeframe, exchange.PairFeed{
+	return exchange.NewCSVFeed(timeframe, exchange.PairCSVFeed{
 		Pair:      pair,
 		File:      filename,
 		Timeframe: timeframe,

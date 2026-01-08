@@ -34,17 +34,33 @@ var (
 // Types
 // ---------------------
 
-// PairFeed represents data for a specific trading pair
-type PairFeed struct {
+// PairCSVFeed represents data for a specific trading pair
+type PairCSVFeed struct {
 	Pair       string
 	File       string
 	Timeframe  string
 	HeikinAshi bool
 }
 
-// CSVFeed represents a data feed from CSV files
-type CSVFeed struct {
-	Feeds               map[string]PairFeed
+type RawCandle struct {
+	Time   time.Time
+	Open   float64
+	Close  float64
+	Low    float64
+	High   float64
+	Volume float64
+}
+
+type PairDataFeed struct {
+	Pair       string
+	RawCandles []RawCandle
+	Timeframe  string
+	HeikinAshi bool
+}
+
+// Feed represents a data feed from CSV files
+type Feed struct {
+	Feeds               map[string]PairCSVFeed
 	CandlePairTimeFrame map[string][]core.Candle
 }
 
@@ -56,9 +72,9 @@ type PeriodBoundaryCheck func(t time.Time, fromTimeframe, targetTimeframe string
 // ---------------------
 
 // NewCSVFeed creates a new CSV feed and resamples data to the target timeframe
-func NewCSVFeed(targetTimeframe string, feeds ...PairFeed) (*CSVFeed, error) {
-	csvFeed := &CSVFeed{
-		Feeds:               make(map[string]PairFeed),
+func NewCSVFeed(targetTimeframe string, feeds ...PairCSVFeed) (*Feed, error) {
+	csvFeed := &Feed{
+		Feeds:               make(map[string]PairCSVFeed),
 		CandlePairTimeFrame: make(map[string][]core.Candle),
 	}
 
@@ -66,7 +82,40 @@ func NewCSVFeed(targetTimeframe string, feeds ...PairFeed) (*CSVFeed, error) {
 		csvFeed.Feeds[feed.Pair] = feed
 
 		// Read candles from CSV file
-		candles, err := readCandlesFromCSV(feed)
+		candles, err := ReadCandlesFromCSV(feed)
+		if err != nil {
+			return nil, err
+		}
+
+		// Store the original candles
+		sourceKey := csvFeed.feedTimeframeKey(feed.Pair, feed.Timeframe)
+		csvFeed.CandlePairTimeFrame[sourceKey] = candles
+
+		// Resample to target timeframe if different
+		if err := csvFeed.resample(feed.Pair, feed.Timeframe, targetTimeframe); err != nil {
+			return nil, err
+		}
+	}
+
+	return csvFeed, nil
+}
+
+// NewCustormDataFeed creates a new custom data feed and resamples data to the target timeframe
+func NewCustormDataFeed(targetTimeframe string, feeds ...PairDataFeed) (*Feed, error) {
+	csvFeed := &Feed{
+		Feeds:               make(map[string]PairCSVFeed),
+		CandlePairTimeFrame: make(map[string][]core.Candle),
+	}
+
+	for _, feed := range feeds {
+		csvFeed.Feeds[feed.Pair] = PairCSVFeed{
+			Pair:       feed.Pair,
+			Timeframe:  feed.Timeframe,
+			HeikinAshi: feed.HeikinAshi,
+		}
+
+		// Read candles from CSV file
+		candles, err := parseCandlesFromRaw(feed)
 		if err != nil {
 			return nil, err
 		}
@@ -89,7 +138,7 @@ func NewCSVFeed(targetTimeframe string, feeds ...PairFeed) (*CSVFeed, error) {
 // ---------------------
 
 // readCandlesFromCSV reads and processes a CSV file to create candles
-func readCandlesFromCSV(feed PairFeed) ([]core.Candle, error) {
+func ReadCandlesFromCSV(feed PairCSVFeed) ([]core.Candle, error) {
 	// Open CSV file
 	csvFile, err := os.Open(feed.File)
 	if err != nil {
@@ -152,6 +201,24 @@ func parseHeaders(headers []string) (headerMap map[string]int, additional []stri
 	}
 
 	return headerMap, additional, true
+}
+
+func parseCandlesFromRaw(feed PairDataFeed) ([]core.Candle, error) {
+	candles := make([]core.Candle, 0, len(feed.RawCandles))
+	for _, raw := range feed.RawCandles {
+		candles = append(candles, core.Candle{
+			Time:      raw.Time,
+			UpdatedAt: raw.Time,
+			Pair:      feed.Pair,
+			Open:      raw.Open,
+			Close:     raw.Close,
+			Low:       raw.Low,
+			High:      raw.High,
+			Volume:    raw.Volume,
+			Complete:  true,
+		})
+	}
+	return candles, nil
 }
 
 // parseCandleFromLine parses a CSV line and creates a candle
@@ -271,7 +338,7 @@ func isTimeOnPeriodBoundary(t time.Time, targetTimeframe string) (bool, error) {
 // ---------------------
 
 // resample resamples candles from source timeframe to target timeframe
-func (c *CSVFeed) resample(pair, sourceTimeframe, targetTimeframe string) error {
+func (c *Feed) resample(pair, sourceTimeframe, targetTimeframe string) error {
 	sourceKey := c.feedTimeframeKey(pair, sourceTimeframe)
 	targetKey := c.feedTimeframeKey(pair, targetTimeframe)
 
@@ -297,7 +364,7 @@ func (c *CSVFeed) resample(pair, sourceTimeframe, targetTimeframe string) error 
 }
 
 // findFirstPeriodCandle finds the index of the first candle that starts a period
-func (c *CSVFeed) findFirstPeriodCandle(candles []core.Candle, sourceTimeframe, targetTimeframe string) (int, error) {
+func (c *Feed) findFirstPeriodCandle(candles []core.Candle, sourceTimeframe, targetTimeframe string) (int, error) {
 	for i := range candles {
 		isFirst, err := isFistCandlePeriod(candles[i].Time, sourceTimeframe, targetTimeframe)
 		if err != nil {
@@ -311,7 +378,7 @@ func (c *CSVFeed) findFirstPeriodCandle(candles []core.Candle, sourceTimeframe, 
 }
 
 // resampleCandles resamples candles by grouping them by period
-func (c *CSVFeed) resampleCandles(sourceCandles []core.Candle, sourceTimeframe, targetTimeframe string) ([]core.Candle, error) {
+func (c *Feed) resampleCandles(sourceCandles []core.Candle, sourceTimeframe, targetTimeframe string) ([]core.Candle, error) {
 	if len(sourceCandles) == 0 {
 		return nil, nil
 	}
@@ -363,12 +430,12 @@ func (c *CSVFeed) resampleCandles(sourceCandles []core.Candle, sourceTimeframe, 
 // ---------------------
 
 // feedTimeframeKey generates a unique key for each pair and timeframe
-func (c CSVFeed) feedTimeframeKey(pair, timeframe string) string {
+func (c Feed) feedTimeframeKey(pair, timeframe string) string {
 	return fmt.Sprintf("%s--%s", pair, timeframe)
 }
 
 // Limit limits candles to a specific time duration
-func (c *CSVFeed) Limit(duration time.Duration) *CSVFeed {
+func (c *Feed) Limit(duration time.Duration) *Feed {
 	for pair, candles := range c.CandlePairTimeFrame {
 		if len(candles) == 0 {
 			continue
@@ -390,7 +457,7 @@ func (c *CSVFeed) Limit(duration time.Duration) *CSVFeed {
 // ---------------------
 
 // AssetsInfo returns information about a trading pair's assets
-func (c CSVFeed) AssetsInfo(pair string) (core.AssetInfo, error) {
+func (c Feed) AssetsInfo(pair string) (core.AssetInfo, error) {
 	asset, quote := SplitAssetQuote(pair)
 	return core.NewAssetInfo(
 		asset,
@@ -407,12 +474,12 @@ func (c CSVFeed) AssetsInfo(pair string) (core.AssetInfo, error) {
 }
 
 // LastQuote returns the last quote (not implemented for CSVFeed)
-func (c CSVFeed) LastQuote(_ context.Context, _ string) (float64, error) {
+func (c Feed) LastQuote(_ context.Context, _ string) (float64, error) {
 	return 0, errors.New("invalid operation")
 }
 
 // CandlesByPeriod returns candles within a specific time period
-func (c CSVFeed) CandlesByPeriod(_ context.Context, pair, timeframe string, start, end time.Time) ([]core.Candle, error) {
+func (c Feed) CandlesByPeriod(_ context.Context, pair, timeframe string, start, end time.Time) ([]core.Candle, error) {
 	key := c.feedTimeframeKey(pair, timeframe)
 	result := make([]core.Candle, 0)
 
@@ -428,7 +495,7 @@ func (c CSVFeed) CandlesByPeriod(_ context.Context, pair, timeframe string, star
 }
 
 // CandlesByLimit returns a limited number of candles and removes them from the feed
-func (c *CSVFeed) CandlesByLimit(_ context.Context, pair, timeframe string, limit int) ([]core.Candle, error) {
+func (c *Feed) CandlesByLimit(_ context.Context, pair, timeframe string, limit int) ([]core.Candle, error) {
 	key := c.feedTimeframeKey(pair, timeframe)
 
 	if len(c.CandlePairTimeFrame[key]) < limit {
@@ -443,7 +510,7 @@ func (c *CSVFeed) CandlesByLimit(_ context.Context, pair, timeframe string, limi
 }
 
 // CandlesSubscription returns a channel to receive candles
-func (c CSVFeed) CandlesSubscription(_ context.Context, pair, timeframe string) (chan core.Candle, chan error) {
+func (c Feed) CandlesSubscription(_ context.Context, pair, timeframe string) (chan core.Candle, chan error) {
 	ccandle := make(chan core.Candle)
 	cerr := make(chan error)
 	key := c.feedTimeframeKey(pair, timeframe)

@@ -290,7 +290,7 @@ func runCsvBacktest(ctx context.Context, strategy *strategies.ChatGPTStrategy, s
 	}
 
 	// Create CSV feed
-	pairFeed := exchange.PairFeed{
+	pairFeed := exchange.PairCSVFeed{
 		Pair:      symbol,
 		File:      csvFile,
 		Timeframe: strategy.Timeframe(),

@@ -19,7 +19,7 @@ type StrategyFactory func(params core.ParameterSet) (core.Strategy, error)
 type BacktestStrategyEvaluator struct {
 	strategyFactory StrategyFactory
 	settings        *core.Settings
-	dataFeed        *exchange.CSVFeed
+	dataFeed        *exchange.Feed
 	logger          core.Logger
 	startBalance    float64
 	quoteCurrency   string
@@ -29,7 +29,7 @@ type BacktestStrategyEvaluator struct {
 func NewBacktestStrategyEvaluator(
 	strategyFactory StrategyFactory,
 	settings *core.Settings,
-	dataFeed *exchange.CSVFeed,
+	dataFeed *exchange.Feed,
 	logger core.Logger,
 	startBalance float64,
 	quoteCurrency string,

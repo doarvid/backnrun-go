@@ -13,7 +13,7 @@ import (
 	"github.com/raykavin/backnrun/strategies"
 )
 
-var pairs = []string{"BTCUSDT", "ETHUSDT", "OMUSDT", "BELUSDT", "VOXELUSDT"}
+var pairs = []string{"002746.sh", "上证"}
 
 func main() {
 	ctx := context.Background()
@@ -23,7 +23,7 @@ func main() {
 	logger.SetLevel(core.DebugLevel)
 
 	// Strategy
-	strategy := strategies.NewTripleMAStrategy()
+	strategy := strategies.NewTurtleStrategy()
 	// strategy := strategies.NewAdaptiveMomentumStrategy()
 	// strategy := strategies.NewTurtleStrategy()
 
@@ -71,22 +71,43 @@ func mustRun(err error) {
 }
 
 // Historical data feed
-func mustInitializeFeed(timeframe string, logger core.Logger) *exchange.CSVFeed {
-	pairsFeed := make([]exchange.PairFeed, len(pairs))
+func mustInitializeFeed(timeframe string, logger core.Logger) *exchange.Feed {
+	pairsFeed := make([]exchange.PairDataFeed, len(pairs))
 
 	for i, pair := range pairs {
-		pairsFeed[i] = exchange.PairFeed{
+		exchange.UpdatePair(pair, exchange.AssetQuote{
+			Asset: pair,
+			Quote: "USDT",
+		})
+
+		pairFeed := exchange.PairCSVFeed{
 			Pair:      pair,
 			File:      fmt.Sprintf("./data/%s-%s.csv", pair, timeframe),
 			Timeframe: timeframe,
 		}
+		candles, _ := exchange.ReadCandlesFromCSV(pairFeed)
+
+		pairsFeed[i] = exchange.PairDataFeed{
+			Pair:      pair,
+			Timeframe: timeframe,
+		}
+		for _, candle := range candles {
+			pairsFeed[i].RawCandles = append(pairsFeed[i].RawCandles, exchange.RawCandle{
+				Time:   candle.Time,
+				Open:   candle.Open,
+				High:   candle.High,
+				Low:    candle.Low,
+				Close:  candle.Close,
+				Volume: candle.Volume,
+			})
+		}
 	}
 
-	return must(exchange.NewCSVFeed(timeframe, pairsFeed...))
+	return must(exchange.NewCustormDataFeed(timeframe, pairsFeed...))
 }
 
 // Create a simulation wallet
-func newWallet(ctx context.Context, logger core.Logger, feed *exchange.CSVFeed) *exchange.PaperWallet {
+func newWallet(ctx context.Context, logger core.Logger, feed *exchange.Feed) *exchange.PaperWallet {
 	return exchange.NewPaperWallet(ctx, "USDT", logger,
 		exchange.WithPaperAsset("USDT", 100), exchange.WithDataFeed(feed))
 }

@@ -12,7 +12,7 @@ import (
 
 func TestNewCSVFeed(t *testing.T) {
 	t.Run("no header", func(t *testing.T) {
-		feed, err := NewCSVFeed("1d", PairFeed{
+		feed, err := NewCSVFeed("1d", PairCSVFeed{
 			Timeframe: "1d",
 			Pair:      "BTCUSDT",
 			File:      "../testdata/btc-1d.csv",
@@ -30,7 +30,7 @@ func TestNewCSVFeed(t *testing.T) {
 	})
 
 	t.Run("with header and custom data", func(t *testing.T) {
-		feed, err := NewCSVFeed("1d", PairFeed{
+		feed, err := NewCSVFeed("1d", PairCSVFeed{
 			Timeframe: "1d",
 			Pair:      "BTCUSDT",
 			File:      "../testdata/btc-1d-header.csv",
@@ -50,7 +50,7 @@ func TestNewCSVFeed(t *testing.T) {
 }
 
 func TestCSVFeed_CandlesByLimit(t *testing.T) {
-	feed, err := NewCSVFeed("1d", PairFeed{
+	feed, err := NewCSVFeed("1d", PairCSVFeed{
 		Timeframe: "1d",
 		Pair:      "BTCUSDT",
 		File:      "../testdata/btc-1d.csv",
@@ -71,7 +71,7 @@ func TestCSVFeed_resample(t *testing.T) {
 	t.Run("1h to 1d", func(t *testing.T) {
 		feed, err := NewCSVFeed(
 			"1d",
-			PairFeed{
+			PairCSVFeed{
 				Timeframe: "1h",
 				Pair:      "BTCUSDT",
 				File:      "../testdata/btc-1h-2021-05-13.csv",
@@ -97,7 +97,7 @@ func TestCSVFeed_resample(t *testing.T) {
 		// load feed with 180 days witch candles of 1h
 		feed, err = NewCSVFeed(
 			"1d",
-			PairFeed{
+			PairCSVFeed{
 				Timeframe: "1h",
 				Pair:      "BTCUSDT",
 				File:      "../testdata/btc-1h.csv",
@@ -119,7 +119,7 @@ func TestCSVFeed_resample(t *testing.T) {
 	t.Run("invalid timeframe", func(t *testing.T) {
 		feed, err := NewCSVFeed(
 			"1d",
-			PairFeed{
+			PairCSVFeed{
 				Timeframe: "invalid",
 				Pair:      "BTCUSDT",
 				File:      "../testdata/btc-1h-2021-05-13.csv",

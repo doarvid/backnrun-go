@@ -78,7 +78,7 @@ func TestDownloader_download(t *testing.T) {
 
 	csvFeed, err := exchange.NewCSVFeed(
 		"1d",
-		exchange.PairFeed{
+		exchange.PairCSVFeed{
 			Pair:      "BTCUSDT",
 			File:      "../testdata/btc-1d.csv",
 			Timeframe: "1d",
@@ -99,7 +99,7 @@ func TestDownloader_download(t *testing.T) {
 
 		csvFeed, err := exchange.NewCSVFeed(
 			"1d",
-			exchange.PairFeed{
+			exchange.PairCSVFeed{
 				Pair:      "BTCUSDT",
 				File:      "../testdata/btc-1d.csv",
 				Timeframe: "1d",

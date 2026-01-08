@@ -13,9 +13,7 @@
 <body style="margin: 0;height: 100%">
 <div class="d-flex flex-wrap" id="trading-pairs">
           {{range $val := .pairs}}
-          <a class="btn btn-outline-primary pair-btn {{if eq $.pair $val}}active{{end}}" href="/?pair={{ $val }}">
-            {{ $val }}
-          </a>
+          <a style="margin: 2px;" href="/?pair={{ $val }}">{{ $val }}</a>
           {{end}}
         </div>
 <div id="chart" style="height: 100%"></div>
