@@ -24,8 +24,8 @@ func (bot *Bot) Summary() {
 
 	buffer := bytes.NewBuffer(nil)
 	table := tablewriter.NewWriter(buffer)
-	table.SetHeader([]string{"Pair", "Trades", "Win", "Loss", "% Win", "Payoff", "Pr Fact.", "SQN", "Profit", "Volume"})
-	table.SetFooterAlignment(tablewriter.ALIGN_RIGHT)
+	table.Header([]string{"Pair", "Trades", "Win", "Loss", "% Win", "Payoff", "Pr Fact.", "SQN", "Profit", "Volume"})
+	//table.SetFooterAlignment(tablewriter.ALIGN_RIGHT)
 	avgPayoff := 0.0
 	avgProfitFactor := 0.0
 
@@ -55,7 +55,7 @@ func (bot *Bot) Summary() {
 		returns = append(returns, summary.LosePercent()...)
 	}
 
-	table.SetFooter([]string{
+	table.Footer([]string{
 		"TOTAL",
 		strconv.Itoa(wins + loses),
 		strconv.Itoa(wins),

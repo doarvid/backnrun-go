@@ -146,8 +146,14 @@ func (s TradeSummary) String() string {
 		{"Volume", fmt.Sprintf("%.4f %s", s.Volume, quote)},
 	}
 
-	table.AppendBulk(data)
-	table.SetColumnAlignment([]int{tablewriter.ALIGN_LEFT, tablewriter.ALIGN_RIGHT})
+	headers := []string{}
+	rows := []string{}
+	for _, d := range data {
+		headers = append(headers, d[0])
+		rows = append(rows, d[1])
+	}
+	table.Header(headers)
+	table.Append(rows)
 	table.Render()
 
 	return tableString.String()
