@@ -25,8 +25,6 @@
         chart.createIndicator('MA', false, { id: 'candle_pane' })
         // 创建一个副图技术指标VOL
         chart.createIndicator('VOL')
-        // 创建一个副图技术指标MACD
-        chart.createIndicator('MACD')
       
         function drawIndicator(cfg) {
           var calcParams =[]
@@ -38,10 +36,17 @@
             }
             figures.push({ key: element.name, title: element.name+":", type:element.style,values:valset })
           });
-
+          var shouldOhlc = false
+          var pandId =cfg.name
+          if (cfg.overlay) {
+            shouldOhlc = true
+            pandId = 'candle_pane'
+          }
+          console.log(cfg.name, shouldOhlc)
           const indicatorCfg = {
               name: cfg.name,
               shortName: cfg.name,
+              shouldOhlc: shouldOhlc,
               calcParams: calcParams,
               figures: figures,
               calc: (dataList, indicator) => {
@@ -57,12 +62,13 @@
           
           klinecharts.registerIndicator(indicatorCfg);
           // 创建副图指标
-          chart.createIndicator(cfg.name, false, { id: cfg.name });
+          chart.createIndicator(cfg.name, shouldOhlc, { id: pandId });
         }
         // WebSocket 连接
+        const host = window.location.host
         const urlParams = new URLSearchParams(window.location.search);
         const pair = urlParams.get('pair');
-        var ws = new WebSocket('ws://localhost:8080/ws?pair='+pair); 
+        var ws = new WebSocket('ws://'+host+'/ws?pair='+pair); 
         ws.onopen = function() {
             console.log('Connected to WebSocket');
         };
